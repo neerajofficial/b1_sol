@@ -22,6 +22,17 @@ contract CrowdFunding {
     uint public raisedAmount;
     uint public totalContributors;
 
+    struct Request {
+        string description;
+        address payable recipient;
+        uint value;
+        bool completed;
+        uint totalVoters;
+        mapping(address=>bool) voters;
+    }
+    mapping(uint=>Request) public requests;
+    uint public numRequests;
+
     constructor(uint _target, uint _deadline, uint _minContribution) {
         target = _target;
         deadline = block.timestamp + _deadline; // 1h -> 3600sec
