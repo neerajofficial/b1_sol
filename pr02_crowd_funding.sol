@@ -33,6 +33,11 @@ contract CrowdFunding {
     mapping(uint=>Request) public requests;
     uint public numRequests;
 
+    modifier onlyManager() {
+        require(msg.sender == manager, "Only manager can call this function");
+        _;
+    }
+
     constructor(uint _target, uint _deadline, uint _minContribution) {
         target = _target;
         deadline = block.timestamp + _deadline; // 1h -> 3600sec
@@ -61,5 +66,30 @@ contract CrowdFunding {
         address payable user = payable(msg.sender);
         user.transfer(contributors[msg.sender]);
         contributors[msg.sender] = 0;
+    }
+
+    function createRequest(string memory _description, address payable _recipient, uint _value) public onlyManager {
+        Request storage newRequest = requests[numRequests];
+        numRequests++;
+        newRequest.description = _description;
+        newRequest.recipient = _recipient;
+        newRequest.value = _value;
+        newRequest.completed = false;
+        newRequest.totalVoters = 0;
+    }
+    function voteRequest(uint _requestNum) public {
+        require(contributors[msg.sender] > 0, "You must be a contributor");
+        Request storage thisRequest = requests[_requestNum];
+        require(thisRequest.voters[msg.sender] == false, "You have already voted");
+        thisRequest.voters[msg.sender] = true;
+        thisRequest.totalVoters++;
+    }
+    function makePayment(uint _requestNum) public onlyManager {
+        require(raisedAmount >= target, "Not reached target");
+        Request storage thisRequest = requests[_requestNum];
+        require(thisRequest.completed == false, "The request already completed");
+        require(thisRequest.totalVoters > totalContributors / 2, "Majority does not support");
+        thisRequest.recipient.transfer(thisRequest.value);
+        thisRequest.completed = true; 
     }
 }
